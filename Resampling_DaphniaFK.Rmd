@@ -1,0 +1,790 @@
+---
+title: "Resampling"
+author: "Verena Tams"
+date: "April 16, 2018"
+output: html_document
+---
+Manuscript title: "Gene co-expression in *Daphnia* exposed to fish kairomones"
+
+authors: "VT, JHN, AE, MC, Universität Hamburg"
+
+This Rmd file is used to verify robust ME-trait-correlations.
+Module eigengene – trait correlation
+Modules were related to external trait information which originated from a previous life history study of Tams et al (2018) in which several clonal lines of *D. galeata* were exposed to fish kairomones. In the gene expression analysis we had three biological replicates per clonal line, while we had one mean value for every life history trait measured per clonal line. To perform a correlation analysis we had to assign the same mean trait value to all three biological replicates resulting in potential false or inflated correlations. To avoid this artefact, we randomly resampled the available individual trait values for each life history trait in every clonal line, to obtain one “unique” mean trait value per replicate per clonal line. For example, we had trait values for 15 individuals for the trait ‘broods’ in the clonal line M6 exposed to fish kairomones. In the first resampling step, we randomly picked the life history trait values of 75% of the individuals to calculate a mean. The process was repeated twice to obtain 3 randomized mean values for this life history trait per clonal line. This step was repeated for every trait value in every clonal line. Finally, the correlation of module eigengenes (ME) and the resampled life history trait mean values was calculated. This whole procedure of resampling to calculate randomized means and their correlation to the module eigengenes was repeated 10,000 times to verify the robustness of the module eigengene-trait-correlations. We then counted the observations per trait and module eigengene where the correlation value was above a 0.5 absolute value. Correlations between module eigengene and trait where considered to be robust if occurring in more than 95% of the iterations.
+
+```{r setup, include=FALSE}
+#workingDir<- 
+#setwd(workingDir)
+library(dplyr)
+```
+
+```{r time, include=FALSE}
+ptm<- proc.time()
+```
+
+```{r data, include=FALSE}
+#load trait data
+datTraits0<- read.csv(file="Resampling/Input/LHT2.csv", sep=";")
+head(datTraits0)
+dim(datTraits0) #58 11
+#load expr & ME data for correlation
+datExpr0<- read.csv(file="Resampling/Input/datExpr.csv", sep=",") #rearranged and outlier checked expr data
+#head(datExpr0)
+dim(datExpr0) #12 32556
+rownames(datExpr0)=datExpr0$X
+datExpr0$X=NULL
+#head(datExpr0)
+MEs<- read.csv(file="Resampling/Input/MEs.csv")
+#head(MEs)
+MEs$X =NULL
+```
+
+```{r resampling}
+#number of iterations
+n=10
+```
+### life history trait: brood1
+```{r brood1, include=FALSE}
+x1 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ]
+   #returns TRUE when same order
+  table(rownames(results_matched)==rownames(datExpr0)) 
+    # correlate with 
+  traitcor_brood1 <- cor(MEs, results_matched$brood1, "p")
+})
+#transformation to count observations
+x1<- as.data.frame(x1)
+y_t1<- data.frame(t(x1))
+```
+
+```{r brood1.2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t1$MEblack <= -0.5) + (y_t1$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t1$MEblue <= -0.5) + (y_t1$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t1$MEbrown <= -0.5) + (y_t1$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t1$MEcyan  <= -0.5) + (y_t1$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t1$MEgreen <= -0.5) + (y_t1$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t1$MEgreenyellow <= -0.5) + (y_t1$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t1$MEgrey <= -0.5) + (y_t1$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t1$MEmagenta<= -0.5) + (y_t1$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t1$MEmidnightblue<= -0.5) + (y_t1$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t1$MEpink<= -0.5) + (y_t1$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t1$MEpurple<= -0.5) + (y_t1$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t1$MEred<= -0.5) + (y_t1$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t1$MEsalmon<= -0.5) + (y_t1$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t1$MEtan<= -0.5) + (y_t1$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t1$MEturquoise<= -0.5) + (y_t1$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t1$MEyellow<= -0.5) + (y_t1$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11, brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts) <- names(y_t1)
+rownames(counts) <-"brood1"
+```
+### life history trait: brood2
+```{r brood2, include=FALSE}
+x2 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+    table(rownames(results_matched)==rownames(datExpr0)) 
+    # correlate with 
+  traitcor_brood2 <- cor(MEs, results_matched$brood2, "p")
+})
+#transformation to count observations
+x2<- as.data.frame(x2)
+y_t2<- data.frame(t(x2))
+```
+
+```{r brood2.2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t2$MEblack <= -0.5) + (y_t2$MEblack>= 0.5)
+brood2_counts_1 <- sum(indx_black)
+indx_blue <- (y_t2$MEblue <= -0.5) + (y_t2$MEblue>= 0.5) 
+brood2_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t2$MEbrown <= -0.5) + (y_t2$MEbrown>= 0.5) 
+brood2_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t2$MEcyan  <= -0.5) + (y_t2$MEcyan>= 0.5) 
+brood2_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t2$MEgreen <= -0.5) + (y_t2$MEgreen>= 0.5) 
+brood2_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t2$MEgreenyellow <= -0.5) + (y_t2$MEgreenyellow>= 0.5) 
+brood2_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t2$MEgrey <= -0.5) + (y_t2$MEgrey>= 0.5) 
+brood2_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t2$MEmagenta<= -0.5) + (y_t2$MEmagenta>= 0.5) 
+brood2_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t2$MEmidnightblue<= -0.5) + (y_t2$MEmidnightblue>= 0.5) 
+brood2_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t2$MEpink<= -0.5) + (y_t2$MEpink>= 0.5) 
+brood2_counts_10<- sum(indx_pink)
+indx_purple<- (y_t2$MEpurple<= -0.5) + (y_t2$MEpurple>= 0.5) 
+brood2_counts_11<- sum(indx_purple)
+indx_red<- (y_t2$MEred<= -0.5) + (y_t2$MEred>= 0.5) 
+brood2_counts_12<- sum(indx_red)
+indx_salmon<- (y_t2$MEsalmon<= -0.5) + (y_t2$MEsalmon>= 0.5) 
+brood2_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t2$MEtan<= -0.5) + (y_t2$MEtan>= 0.5) 
+brood2_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t2$MEturquoise<= -0.5) + (y_t2$MEturquoise>= 0.5) 
+brood2_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t2$MEyellow<= -0.5) + (y_t2$MEyellow>= 0.5) 
+brood2_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts2<- cbind(brood2_counts_1, brood2_counts_2, brood2_counts_3, brood2_counts_4, brood2_counts_5, brood2_counts_6, brood2_counts_7, brood2_counts_8, brood2_counts_9, brood2_counts_10, brood2_counts_11, brood2_counts_12, brood2_counts_13, brood2_counts_14, brood2_counts_15, brood2_counts_16)
+colnames(counts2) <- names(y_t2)
+rownames(counts2) <-"brood2"
+```
+
+### life history trait: brood3
+```{r brood3, include=FALSE}
+x3 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  table(rownames(results_matched)==rownames(datExpr0)) 
+    # correlate with 
+  traitcor_brood3 <- cor(MEs, results_matched$brood3, "p")
+})
+#transformation to count observations
+x3<- as.data.frame(x3)
+y_t3<- data.frame(t(x3))
+```
+
+```{r brood3.2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t3$MEblack <= -0.5) + (y_t3$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t3$MEblue <= -0.5) + (y_t3$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t3$MEbrown <= -0.5) + (y_t3$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t3$MEcyan  <= -0.5) + (y_t3$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t3$MEgreen <= -0.5) + (y_t3$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t3$MEgreenyellow <= -0.5) + (y_t3$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t3$MEgrey <= -0.5) + (y_t3$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t3$MEmagenta<= -0.5) + (y_t3$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t3$MEmidnightblue<= -0.5) + (y_t3$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t3$MEpink<= -0.5) + (y_t3$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t3$MEpurple<= -0.5) + (y_t3$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t3$MEred<= -0.5) + (y_t3$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t3$MEsalmon<= -0.5) + (y_t3$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t3$MEtan<= -0.5) + (y_t3$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t3$MEturquoise<= -0.5) + (y_t3$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t3$MEyellow<= -0.5) + (y_t3$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts3<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts3) <- names(y_t3)
+rownames(counts3) <-"brood3"
+
+```
+### life history trait: brood4
+```{r brood4, include=FALSE}
+x4 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with 
+  traitcor_brood4 <- cor(MEs, results_matched$brood4, "p")
+})
+#transformation to count observations
+x4<- as.data.frame(x4)
+y_t4<- data.frame(t(x4))
+```
+
+```{r brood4.2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t4$MEblack <= -0.5) + (y_t4$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t4$MEblue <= -0.5) + (y_t4$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t4$MEbrown <= -0.5) + (y_t4$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t4$MEcyan  <= -0.5) + (y_t4$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t4$MEgreen <= -0.5) + (y_t4$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t4$MEgreenyellow <= -0.5) + (y_t4$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t4$MEgrey <= -0.5) + (y_t4$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t4$MEmagenta<= -0.5) + (y_t4$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t4$MEmidnightblue<= -0.5) + (y_t4$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t4$MEpink<= -0.5) + (y_t4$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t4$MEpurple<= -0.5) + (y_t4$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t4$MEred<= -0.5) + (y_t4$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t4$MEsalmon<= -0.5) + (y_t4$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t4$MEtan<= -0.5) + (y_t4$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t4$MEturquoise<= -0.5) + (y_t4$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t4$MEyellow<= -0.5) + (y_t4$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts4<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts4) <- names(y_t4)
+rownames(counts4) <-"brood4"
+
+```
+### life history trait: AFR
+```{r AFR, include=FALSE}
+x5 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+results_input$Group.1=NULL 
+   results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  
+  table(rownames(results_matched)==rownames(datExpr0)) 
+    # correlate with 
+  traitcor_AFR <- cor(MEs, results_matched$AFR, "p")
+})
+#transformation to count observations
+x5<- as.data.frame(x5)
+y_t5<- data.frame(t(x5))
+```
+
+```{r AFR2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t5$MEblack <= -0.5) + (y_t5$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t5$MEblue <= -0.5) + (y_t5$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t5$MEbrown <= -0.5) + (y_t5$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t5$MEcyan  <= -0.5) + (y_t5$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t5$MEgreen <= -0.5) + (y_t5$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t5$MEgreenyellow <= -0.5) + (y_t5$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t5$MEgrey <= -0.5) + (y_t5$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t5$MEmagenta<= -0.5) + (y_t5$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t5$MEmidnightblue<= -0.5) + (y_t5$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t5$MEpink<= -0.5) + (y_t5$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t5$MEpurple<= -0.5) + (y_t5$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t5$MEred<= -0.5) + (y_t5$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t5$MEsalmon<= -0.5) + (y_t5$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t5$MEtan<= -0.5) + (y_t5$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t5$MEturquoise<= -0.5) + (y_t5$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t5$MEyellow<= -0.5) + (y_t5$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts5<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts5) <- names(y_t5)
+rownames(counts5) <-"AFR"
+```
+
+### life history trait: broods
+```{r broods, include=FALSE}
+x6 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with
+  traitcor_broods <- cor(MEs, results_matched$broods, "p")
+})
+#transformation to count observations
+x6<- as.data.frame(x6)
+y_t6<- data.frame(t(x6))
+```
+
+```{r broods2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t6$MEblack <= -0.5) + (y_t6$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t6$MEblue <= -0.5) + (y_t6$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t6$MEbrown <= -0.5) + (y_t6$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t6$MEcyan  <= -0.5) + (y_t6$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t6$MEgreen <= -0.5) + (y_t6$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t6$MEgreenyellow <= -0.5) + (y_t6$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t6$MEgrey <= -0.5) + (y_t6$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t6$MEmagenta<= -0.5) + (y_t6$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t6$MEmidnightblue<= -0.5) + (y_t6$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t6$MEpink<= -0.5) + (y_t6$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t6$MEpurple<= -0.5) + (y_t6$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t6$MEred<= -0.5) + (y_t6$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t6$MEsalmon<= -0.5) + (y_t6$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t6$MEtan<= -0.5) + (y_t6$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t6$MEturquoise<= -0.5) + (y_t6$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t6$MEyellow<= -0.5) + (y_t6$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts6<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts6) <- names(y_t6)
+rownames(counts6) <-"broods"
+```
+### life history trait: offspring
+```{r offspring, include=FALSE}
+x7 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with
+  traitcor_off <- cor(MEs, results_matched$offspring, "p")
+})
+#transformation to count observations
+x7<- as.data.frame(x7)
+y_t7<- data.frame(t(x7))
+```
+
+```{r offspring2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t7$MEblack <= -0.5) + (y_t7$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t7$MEblue <= -0.5) + (y_t7$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t7$MEbrown <= -0.5) + (y_t7$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t7$MEcyan  <= -0.5) + (y_t7$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t7$MEgreen <= -0.5) + (y_t7$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t7$MEgreenyellow <= -0.5) + (y_t7$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t7$MEgrey <= -0.5) + (y_t7$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t7$MEmagenta<= -0.5) + (y_t7$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t7$MEmidnightblue<= -0.5) + (y_t7$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t7$MEpink<= -0.5) + (y_t7$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t7$MEpurple<= -0.5) + (y_t7$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t7$MEred<= -0.5) + (y_t7$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t7$MEsalmon<= -0.5) + (y_t7$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t7$MEtan<= -0.5) + (y_t7$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t7$MEturquoise<= -0.5) + (y_t7$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t7$MEyellow<= -0.5) + (y_t7$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts7<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts7) <- names(y_t7)
+rownames(counts7) <-"offspring"
+```
+### life history trait: length
+```{r length, include=FALSE}
+x8 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with 
+  traitcor_length <- cor(MEs, results_matched$length, "p")
+})
+#transformation to count observations
+x8<- as.data.frame(x8)
+y_t8<- data.frame(t(x8))
+```
+
+```{r length2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t8$MEblack <= -0.5) + (y_t8$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t8$MEblue <= -0.5) + (y_t8$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t8$MEbrown <= -0.5) + (y_t8$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t8$MEcyan  <= -0.5) + (y_t8$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t8$MEgreen <= -0.5) + (y_t8$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t8$MEgreenyellow <= -0.5) + (y_t8$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t8$MEgrey <= -0.5) + (y_t8$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t8$MEmagenta<= -0.5) + (y_t8$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t8$MEmidnightblue<= -0.5) + (y_t8$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t8$MEpink<= -0.5) + (y_t8$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t8$MEpurple<= -0.5) + (y_t8$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t8$MEred<= -0.5) + (y_t8$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t8$MEsalmon<= -0.5) + (y_t8$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t8$MEtan<= -0.5) + (y_t8$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t8$MEturquoise<= -0.5) + (y_t8$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t8$MEyellow<= -0.5) + (y_t8$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts8<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts8) <- names(y_t8)
+rownames(counts8) <-"length"
+```
+
+### life history trait: SGR
+```{r SGR, include=FALSE}
+x9 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,4:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,4:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,4:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0) and check for correctness
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+    table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with 
+  traitcor_SGR <- cor(MEs, results_matched$SGR, "p")
+})
+#transformation to count observations
+x9<- as.data.frame(x9)
+y_t9<- data.frame(t(x9))
+```
+
+```{r SGR2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t9$MEblack <= -0.5) + (y_t9$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t9$MEblue <= -0.5) + (y_t9$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t9$MEbrown <= -0.5) + (y_t9$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t9$MEcyan  <= -0.5) + (y_t9$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t9$MEgreen <= -0.5) + (y_t9$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t9$MEgreenyellow <= -0.5) + (y_t9$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t9$MEgrey <= -0.5) + (y_t9$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t9$MEmagenta<= -0.5) + (y_t9$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t9$MEmidnightblue<= -0.5) + (y_t9$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t9$MEpink<= -0.5) + (y_t9$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t9$MEpurple<= -0.5) + (y_t9$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t9$MEred<= -0.5) + (y_t9$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t9$MEsalmon<= -0.5) + (y_t9$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t9$MEtan<= -0.5) + (y_t9$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t9$MEturquoise<= -0.5) + (y_t9$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t9$MEyellow<= -0.5) + (y_t9$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts9<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts9) <- names(y_t9)
+rownames(counts9) <-"SGR"
+```
+
+### treatment: fish kairomone exposure
+```{r treatment, include=FALSE}
+x10 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,2:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,2:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,2:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0)
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+    #check for correctness
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with 
+  traitcor_treatment<- cor(MEs, results_matched$treatment, "p")
+})
+#transformation to count observations
+x10<- as.data.frame(x10)
+y_t10<- data.frame(t(x10))
+```
+
+```{r treatment2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t10$MEblack <= -0.5) + (y_t10$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t10$MEblue <= -0.5) + (y_t10$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t10$MEbrown <= -0.5) + (y_t10$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t10$MEcyan  <= -0.5) + (y_t10$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t10$MEgreen <= -0.5) + (y_t10$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t10$MEgreenyellow <= -0.5) + (y_t10$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t10$MEgrey <= -0.5) + (y_t10$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t10$MEmagenta<= -0.5) + (y_t10$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t10$MEmidnightblue<= -0.5) + (y_t10$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t10$MEpink<= -0.5) + (y_t10$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t10$MEpurple<= -0.5) + (y_t10$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t10$MEred<= -0.5) + (y_t10$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t10$MEsalmon<= -0.5) + (y_t10$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t10$MEtan<= -0.5) + (y_t10$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t10$MEturquoise<= -0.5) + (y_t10$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t10$MEyellow<= -0.5) + (y_t10$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts10<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts10) <- names(y_t10)
+rownames(counts10) <-"treatment"
+```
+### clone
+```{r clone, include=FALSE}
+x11 <- replicate(n, {
+  #repeat 3 times for each biological replicate
+  mydata_re1<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re1<- aggregate(mydata_re1[ ,2:12], by = list(mydata_re1$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re2<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re2<- aggregate(mydata_re2[ ,2:12], by = list(mydata_re2$samplename), FUN = mean, na.rm = TRUE)
+  mydata_re3<- datTraits0 %>% group_by(samplename) %>% sample_frac(0.75)
+  results_re3<- aggregate(mydata_re3[ ,2:12], by = list(mydata_re3$samplename), FUN = mean, na.rm = TRUE)
+  #combine data for 3 biological replicates
+  results_input<- rbind(results_re1, results_re2, results_re3)
+  rownames(results_input)<- c("M6_c_8", "M6_f_13", "M9_c_4", "M9_f_1", "M6_c_9", "M6_f_14", "M9_c_5", "M9_f_2",  "M6_c_10", "M6_f_15", "M9_c_6","M9_f_20" )  
+  #rearrange according to rownames(datExpr0)
+  results_input$Group.1=NULL
+  results_matched<- results_input[match(rownames(datExpr0), rownames(results_input)), ] 
+  #check for correctness
+  table(rownames(results_matched)==rownames(datExpr0)) 
+  # correlate with 
+  traitcor_clone<- cor(MEs, results_matched$clone, "p")
+})
+#transformation to count observations
+x11<- as.data.frame(x11)
+y_t11<- data.frame(t(x11))
+```
+
+```{r clone2, include=FALSE}
+#count obs by threshold of correlation coefficient (>0.5 & <-0.5)
+indx_black <-(y_t11$MEblack <= -0.5) + (y_t11$MEblack>= 0.5)
+brood1_counts_1 <- sum(indx_black)
+indx_blue <- (y_t11$MEblue <= -0.5) + (y_t11$MEblue>= 0.5) 
+brood1_counts_2 <- sum(indx_blue)
+indx_brown <- (y_t11$MEbrown <= -0.5) + (y_t11$MEbrown>= 0.5) 
+brood1_counts_3 <- sum(indx_brown)
+indx_cyan <- (y_t11$MEcyan  <= -0.5) + (y_t11$MEcyan>= 0.5) 
+brood1_counts_4 <- sum(indx_cyan )
+indx_green <- (y_t11$MEgreen <= -0.5) + (y_t11$MEgreen>= 0.5) 
+brood1_counts_5 <- sum(indx_green) 
+indx_greenyellow <- (y_t11$MEgreenyellow <= -0.5) + (y_t11$MEgreenyellow>= 0.5) 
+brood1_counts_6<- sum(indx_greenyellow)
+indx_grey<- (y_t11$MEgrey <= -0.5) + (y_t11$MEgrey>= 0.5) 
+brood1_counts_7<- sum(indx_grey) 
+indx_magenta<- (y_t11$MEmagenta<= -0.5) + (y_t11$MEmagenta>= 0.5) 
+brood1_counts_8<- sum(indx_magenta) 
+indx_midnightblue<- (y_t11$MEmidnightblue<= -0.5) + (y_t11$MEmidnightblue>= 0.5) 
+brood1_counts_9<- sum(indx_midnightblue)
+indx_pink<- (y_t11$MEpink<= -0.5) + (y_t11$MEpink>= 0.5) 
+brood1_counts_10<- sum(indx_pink)
+indx_purple<- (y_t11$MEpurple<= -0.5) + (y_t11$MEpurple>= 0.5) 
+brood1_counts_11<- sum(indx_purple)
+indx_red<- (y_t11$MEred<= -0.5) + (y_t11$MEred>= 0.5) 
+brood1_counts_12<- sum(indx_red)
+indx_salmon<- (y_t11$MEsalmon<= -0.5) + (y_t11$MEsalmon>= 0.5) 
+brood1_counts_13<- sum(indx_salmon)
+indx_tan<- (y_t11$MEtan<= -0.5) + (y_t11$MEtan>= 0.5) 
+brood1_counts_14<- sum(indx_tan)
+indx_turquoise<- (y_t11$MEturquoise<= -0.5) + (y_t11$MEturquoise>= 0.5) 
+brood1_counts_15<- sum(indx_turquoise)
+indx_yellow<- (y_t11$MEyellow<= -0.5) + (y_t11$MEyellow>= 0.5) 
+brood1_counts_16<- sum(indx_yellow)
+#create matrix to store count info per trait
+counts11<- cbind(brood1_counts_1, brood1_counts_2, brood1_counts_3, brood1_counts_4, brood1_counts_5, 
+                brood1_counts_6, brood1_counts_7, brood1_counts_8, brood1_counts_9, brood1_counts_10, brood1_counts_11,
+                brood1_counts_12, brood1_counts_13, brood1_counts_14, brood1_counts_15, brood1_counts_16)
+colnames(counts11) <- names(y_t11)
+rownames(counts11) <-"clone"
+```
+
+Count all observations to verify trait correlations. 
+```{r counts_all, include=FALSE}
+counts_all<- rbind(counts, counts2, counts3, counts4, counts5, counts6, counts7, counts8, counts9, counts10, counts11)
+counts_all<- as.data.frame(counts_all) 
+write.csv(counts_all, file="Resampling/traitcor/counts_all.csv")
+```
+
+```{r time2}
+proc.time() - ptm
+```
